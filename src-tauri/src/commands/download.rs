@@ -1,21 +1,9 @@
-use crate::models::{DownloadTask, DownloadRecord, TaskStatus};
+use crate::models::{DownloadTask, DownloadRecord};
 use crate::services::{StorageService, DownloaderService};
-use std::sync::Mutex;
-use tauri::{State, AppHandle, Manager};
+use tauri::{AppHandle, Manager};
 use chrono::Utc;
 
-/// Application state
-pub struct AppState {
-    pub queue: Mutex<Vec<DownloadTask>>,
-}
 
-impl AppState {
-    pub fn new() -> Self {
-        Self {
-            queue: Mutex::new(Vec::new()),
-        }
-    }
-}
 
 /// Start download for a pubfile ID
 #[tauri::command]
@@ -65,74 +53,9 @@ pub async fn start_download(
     Ok(())
 }
 
-/// Add a task to download queue
-#[tauri::command]
-pub fn add_to_queue(
-    state: State<AppState>,
-    pubfile_id: String,
-    title: String,
-    account: String,
-    download_path: String,
-) -> Result<DownloadTask, String> {
-    let task = DownloadTask::new(pubfile_id, title, account, download_path);
-    let task_clone = task.clone();
-    
-    let mut queue = state.queue.lock()
-        .map_err(|e| format!("Failed to lock queue: {}", e))?;
-    queue.push(task);
-    
-    Ok(task_clone)
-}
 
-/// Get current download queue
-#[tauri::command]
-pub fn get_queue(state: State<AppState>) -> Result<Vec<DownloadTask>, String> {
-    let queue = state.queue.lock()
-        .map_err(|e| format!("Failed to lock queue: {}", e))?;
-    Ok(queue.clone())
-}
 
-/// Remove task from queue
-#[tauri::command]
-pub fn remove_from_queue(state: State<AppState>, task_id: String) -> Result<(), String> {
-    let mut queue = state.queue.lock()
-        .map_err(|e| format!("Failed to lock queue: {}", e))?;
-    queue.retain(|t| t.id != task_id);
-    Ok(())
-}
 
-/// Update task status
-#[tauri::command]
-pub fn update_task_status(
-    state: State<AppState>,
-    task_id: String,
-    status: TaskStatus,
-    error: Option<String>,
-) -> Result<(), String> {
-    let mut queue = state.queue.lock()
-        .map_err(|e| format!("Failed to lock queue: {}", e))?;
-    
-    if let Some(task) = queue.iter_mut().find(|t| t.id == task_id) {
-        task.status = status;
-        task.error = error;
-    }
-    Ok(())
-}
-
-/// Clear completed/failed tasks from queue
-#[tauri::command]
-pub fn clear_completed(state: State<AppState>) -> Result<(), String> {
-    let mut queue = state.queue.lock()
-        .map_err(|e| format!("Failed to lock queue: {}", e))?;
-    queue.retain(|t| t.status != TaskStatus::Completed && t.status != TaskStatus::Failed);
-    Ok(())
-}
-
-/// Get download history
-#[tauri::command]
-pub fn get_history() -> Result<Vec<DownloadRecord>, String> {
-    StorageService::load_history()
-}
 
 /// Add record to history
 #[tauri::command]
@@ -168,8 +91,4 @@ pub fn add_to_history(
     StorageService::save_history(&history)
 }
 
-/// Clear download history
-#[tauri::command]
-pub fn clear_history() -> Result<(), String> {
-    StorageService::save_history(&[])
-}
+

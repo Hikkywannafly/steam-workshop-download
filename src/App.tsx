@@ -1,5 +1,5 @@
 import { useState, useEffect } from "react";
-import { User, FolderOpen, Link, Rocket, CheckCircle, AlertCircle, ChevronDown, Download, Wifi, Settings } from "lucide-react";
+import { User, FolderOpen, Link, CheckCircle, AlertCircle, ChevronDown, Download, Wifi, Settings } from "lucide-react";
 import * as tauri from "@/lib/tauri";
 
 type Tab = "downloader" | "dns" | "settings";

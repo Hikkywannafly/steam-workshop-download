@@ -2,7 +2,6 @@ mod commands;
 mod models;
 mod services;
 
-use commands::download::AppState;
 use services::DownloaderService;
 
 #[cfg_attr(mobile, tauri::mobile_entry_point)]
@@ -11,7 +10,7 @@ pub fn run() {
         .plugin(tauri_plugin_shell::init())
         .plugin(tauri_plugin_dialog::init())
         .plugin(tauri_plugin_fs::init())
-        .manage(AppState::new())
+
         .setup(|app| {
             if cfg!(debug_assertions) {
                 app.handle().plugin(
@@ -32,14 +31,7 @@ pub fn run() {
             commands::get_config_path,
             // Download commands
             commands::start_download,
-            commands::add_to_queue,
-            commands::get_queue,
-            commands::remove_from_queue,
-            commands::update_task_status,
-            commands::clear_completed,
-            commands::get_history,
             commands::add_to_history,
-            commands::clear_history,
         ])
         .on_window_event(|_window, event| {
             if let tauri::WindowEvent::CloseRequested { .. } = event {
