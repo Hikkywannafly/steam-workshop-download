@@ -76,8 +76,10 @@ impl DownloaderService {
     ) -> Result<(), String> {
         use std::os::windows::process::CommandExt;
         
+        // Use download_path directly - user already selects the full path (e.g., D:\Wallpaper Engine\projects\myprojects)
+        // Only append pubfile_id to create a subfolder for each wallpaper
         let output_dir = format!(
-            "{}\\projects\\myprojects\\{}",
+            "{}\\{}",
             task.download_path, task.pubfile_id
         );
 
