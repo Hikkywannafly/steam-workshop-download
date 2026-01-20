@@ -13,6 +13,7 @@ pub async fn start_download(
     account: String,
     password: String,
     download_path: String,
+    app_id: String,
 ) -> Result<(), String> {
     // Validate path exists
     let download_dir = std::path::Path::new(&download_path);
@@ -35,6 +36,7 @@ pub async fn start_download(
         pubfile_id.clone(), // Use ID as title for now
         account.clone(),
         download_path.clone(),
+        app_id,
     );
 
     // Spawn download

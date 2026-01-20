@@ -85,7 +85,7 @@ impl DownloaderService {
 
         let mut child = Command::new(&exe_path)
             .args([
-                "-app", "431960",
+                "-app", &task.app_id,
                 "-pubfile", &task.pubfile_id,
                 "-verify-all",
                 "-username", &task.account,

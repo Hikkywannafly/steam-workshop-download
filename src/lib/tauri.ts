@@ -37,18 +37,31 @@ export async function getConfigPath(): Promise<string> {
     return invoke<string>("get_config_path");
 }
 
+// Steam API
+export interface SteamGameResult {
+    app_id: string;
+    name: string;
+    icon: string | null;
+}
+
+export async function searchSteamGames(query: string): Promise<SteamGameResult[]> {
+    return invoke<SteamGameResult[]>("search_steam_games", { query });
+}
+
 // Download Commands
 export async function startDownload(
     pubfileId: string,
     account: string,
     password: string,
-    downloadPath: string
+    downloadPath: string,
+    appId: string
 ): Promise<void> {
     return invoke("start_download", {
         pubfileId,
         account,
         password,
         downloadPath,
+        appId,
     });
 }
 

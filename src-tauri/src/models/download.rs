@@ -31,10 +31,11 @@ pub struct DownloadTask {
     pub error: Option<String>,
     pub account: String,
     pub download_path: String,
+    pub app_id: String,
 }
 
 impl DownloadTask {
-    pub fn new(pubfile_id: String, title: String, account: String, download_path: String) -> Self {
+    pub fn new(pubfile_id: String, title: String, account: String, download_path: String, app_id: String) -> Self {
         Self {
             id: Uuid::new_v4().to_string(),
             pubfile_id,
@@ -46,6 +47,7 @@ impl DownloadTask {
             error: None,
             account,
             download_path,
+            app_id,
         }
     }
 }

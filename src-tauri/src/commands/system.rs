@@ -48,3 +48,49 @@ pub fn save_settings(settings: AppSettings) -> Result<(), String> {
 pub fn get_config_path() -> String {
     StorageService::get_config_dir().to_string_lossy().to_string()
 }
+
+/// Steam game search result
+#[derive(serde::Serialize)]
+pub struct SteamGameResult {
+    pub app_id: String,
+    pub name: String,
+    pub icon: Option<String>,
+}
+
+/// Search Steam games by name using Steam Store Search API
+#[tauri::command]
+pub async fn search_steam_games(query: String) -> Result<Vec<SteamGameResult>, String> {
+    if query.trim().is_empty() {
+        return Ok(vec![]);
+    }
+
+    let url = format!(
+        "https://store.steampowered.com/api/storesearch/?term={}&l=en&cc=US",
+        urlencoding::encode(&query)
+    );
+
+    let response = reqwest::get(&url)
+        .await
+        .map_err(|e| format!("HTTP request failed: {}", e))?;
+
+    let json: serde_json::Value = response
+        .json()
+        .await
+        .map_err(|e| format!("Failed to parse JSON: {}", e))?;
+
+    let empty_items: Vec<serde_json::Value> = vec![];
+    let items = json["items"].as_array().unwrap_or(&empty_items);
+    
+    let results: Vec<SteamGameResult> = items
+        .iter()
+        .take(10) // Limit to 10 results
+        .filter_map(|item| {
+            let app_id = item["id"].as_u64()?.to_string();
+            let name = item["name"].as_str()?.to_string();
+            let icon = item["tiny_image"].as_str().map(|s| s.to_string());
+            Some(SteamGameResult { app_id, name, icon })
+        })
+        .collect();
+
+    Ok(results)
+}

@@ -1,5 +1,5 @@
-import { useState, useEffect } from "react";
-import { User, FolderOpen, Link, CheckCircle, AlertCircle, ChevronDown, Download, Wifi, Settings } from "lucide-react";
+import { useState, useEffect, useRef } from "react";
+import { User, FolderOpen, Link, CheckCircle, AlertCircle, ChevronDown, Download, Wifi, Settings, Gamepad2, Search } from "lucide-react";
 import * as tauri from "@/lib/tauri";
 
 type Tab = "downloader" | "dns" | "settings";
@@ -8,6 +8,12 @@ interface Account {
   id: string;
   username: string;
   password: string;
+}
+
+interface SteamGame {
+  name: string;
+  appId: string;
+  icon?: string;
 }
 
 export default function App() {
@@ -27,6 +33,66 @@ export default function App() {
   const [isDownloading, setIsDownloading] = useState(false);
   const [consoleOutput, setConsoleOutput] = useState<string[]>([]);
   const [dotnetInstalled, setDotnetInstalled] = useState<boolean | null>(null);
+
+  // Game search states
+  const [gameSearch, setGameSearch] = useState("Wallpaper Engine");
+  const [selectedAppId, setSelectedAppId] = useState("431960");
+  const [showGameDropdown, setShowGameDropdown] = useState(false);
+  const [searchResults, setSearchResults] = useState<SteamGame[]>([]);
+  const [isSearching, setIsSearching] = useState(false);
+  const gameSearchRef = useRef<HTMLDivElement>(null);
+  const searchTimeoutRef = useRef<ReturnType<typeof setTimeout> | null>(null);
+
+  // Check if input is a valid custom App ID
+  const isCustomAppId = /^\d+$/.test(gameSearch.trim());
+
+  // Debounced Steam API search
+  useEffect(() => {
+    if (searchTimeoutRef.current) {
+      clearTimeout(searchTimeoutRef.current);
+    }
+
+    if (!gameSearch.trim() || isCustomAppId) {
+      setSearchResults([]);
+      return;
+    }
+
+    searchTimeoutRef.current = setTimeout(async () => {
+      setIsSearching(true);
+      try {
+        const results = await tauri.searchSteamGames(gameSearch);
+        setSearchResults(
+          results.map((r) => ({
+            name: r.name,
+            appId: r.app_id,
+            icon: r.icon || undefined,
+          }))
+        );
+      } catch (error) {
+        console.error("Steam search failed:", error);
+        setSearchResults([]);
+      } finally {
+        setIsSearching(false);
+      }
+    }, 300); // 300ms debounce
+
+    return () => {
+      if (searchTimeoutRef.current) {
+        clearTimeout(searchTimeoutRef.current);
+      }
+    };
+  }, [gameSearch, isCustomAppId]);
+
+  // Click outside to close dropdown
+  useEffect(() => {
+    const handleClickOutside = (e: MouseEvent) => {
+      if (gameSearchRef.current && !gameSearchRef.current.contains(e.target as Node)) {
+        setShowGameDropdown(false);
+      }
+    };
+    document.addEventListener("mousedown", handleClickOutside);
+    return () => document.removeEventListener("mousedown", handleClickOutside);
+  }, []);
 
   useEffect(() => {
     const init = async () => {
@@ -98,12 +164,14 @@ export default function App() {
         addLog(`----------Downloading ${id}--------`);
 
         try {
-          // Call actual Tauri command with real password
+          // Call actual Tauri command with app ID
+          addLog(`🎮 Game: App ID ${selectedAppId}`);
           await tauri.startDownload(
             id,
             currentAccount.username,
             currentAccount.password,
-            downloadPath
+            downloadPath,
+            selectedAppId
           );
           addLog(`✅ Download completed: ${id}`);
         } catch (error) {
@@ -123,7 +191,7 @@ export default function App() {
     <div className="h-full flex flex-col">
       {/* Header with Navigation */}
       <header className="flex items-center justify-between px-4 py-2.5 border-b border-border bg-surface">
-        <h1 className="text-lg font-bold">WE Downloader</h1>
+        <h1 className="text-lg font-bold">Steam Workshop Downloader</h1>
 
         {/* Navigation Tabs */}
         <nav className="flex items-center gap-1">
@@ -198,11 +266,72 @@ export default function App() {
                 </div>
               </div>
 
+              {/* Game Selector */}
+              <div className="bg-surface rounded-lg p-3 border border-border">
+                <div className="flex items-center gap-2 mb-2">
+                  <Gamepad2 className="w-3.5 h-3.5 text-green-500" />
+                  <span className="text-xs font-medium">Steam Game</span>
+                </div>
+                <div className="relative" ref={gameSearchRef}>
+                  <div className="relative">
+                    <Search className="absolute left-3 top-1/2 -translate-y-1/2 w-3.5 h-3.5 text-muted" />
+                    <input
+                      type="text"
+                      value={gameSearch}
+                      onChange={(e) => {
+                        setGameSearch(e.target.value);
+                        setShowGameDropdown(true);
+                      }}
+                      onFocus={() => setShowGameDropdown(true)}
+                      placeholder="Search game or enter App ID..."
+                      className="w-full pl-9 pr-3 py-2 bg-background border border-border rounded-md text-sm"
+                    />
+                  </div>
+                  {showGameDropdown && (searchResults.length > 0 || isCustomAppId || isSearching) && (
+                    <div className="absolute z-10 w-full mt-1 bg-surface border border-border rounded-md shadow-lg max-h-48 overflow-auto">
+                      {isSearching && (
+                        <div className="px-3 py-2 text-sm text-muted">Searching...</div>
+                      )}
+                      {searchResults.map((game: SteamGame) => (
+                        <div
+                          key={game.appId}
+                          onClick={() => {
+                            setGameSearch(game.name);
+                            setSelectedAppId(game.appId);
+                            setShowGameDropdown(false);
+                          }}
+                          className="px-3 py-2 hover:bg-surface-hover cursor-pointer text-sm flex justify-between items-center"
+                        >
+                          {game.icon && (
+                            <img src={game.icon} alt="" className="w-6 h-6 rounded mr-2" />
+                          )}
+                          <span className="flex-1 truncate">{game.name}</span>
+                          <span className="text-muted text-xs ml-2">{game.appId}</span>
+                        </div>
+                      ))}
+                      {isCustomAppId && (
+                        <div
+                          onClick={() => {
+                            setSelectedAppId(gameSearch.trim());
+                            setShowGameDropdown(false);
+                          }}
+                          className="px-3 py-2 hover:bg-surface-hover cursor-pointer text-sm border-t border-border flex items-center gap-2"
+                        >
+                          <span className="text-primary">Use custom App ID:</span>
+                          <span className="font-mono">{gameSearch.trim()}</span>
+                        </div>
+                      )}
+                    </div>
+                  )}
+                </div>
+                <p className="text-xs text-foreground-muted mt-2">App ID: <span className="font-mono text-primary">{selectedAppId}</span></p>
+              </div>
+
               {/* Path */}
               <div className="bg-surface rounded-lg p-3 border border-border">
                 <div className="flex items-center gap-2 mb-2">
                   <FolderOpen className="w-3.5 h-3.5 text-amber-500" />
-                  <span className="text-xs font-medium">Wallpaper Engine Path</span>
+                  <span className="text-xs font-medium">Download Path</span>
                 </div>
                 <button
                   onClick={selectDirectory}

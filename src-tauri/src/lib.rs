@@ -29,6 +29,7 @@ pub fn run() {
             commands::load_settings,
             commands::save_settings,
             commands::get_config_path,
+            commands::search_steam_games,
             // Download commands
             commands::start_download,
             commands::add_to_history,
