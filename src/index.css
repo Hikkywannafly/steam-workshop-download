@@ -35,6 +35,7 @@ body,
     transform: translateX(100%);
     opacity: 0;
   }
+
   to {
     transform: translateX(0);
     opacity: 1;
@@ -43,4 +44,22 @@ body,
 
 .animate-slide-in {
   animation: slide-in 0.3s ease-out;
+}
+
+/* Custom title bar drag region */
+[data-tauri-drag-region] {
+  -webkit-app-region: drag;
+  app-region: drag;
+}
+
+/* Custom title bar drag region control */
+.no-drag {
+  -webkit-app-region: no-drag;
+  app-region: no-drag;
+  pointer-events: auto;
+}
+
+.no-drag button {
+  pointer-events: auto;
+  cursor: pointer;
 }
