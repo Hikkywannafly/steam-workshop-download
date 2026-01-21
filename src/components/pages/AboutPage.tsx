@@ -1,5 +1,7 @@
 import { Info, Heart, Github, ExternalLink, Sparkles, Gift } from "lucide-react";
 import { open } from "@tauri-apps/plugin-shell";
+import { useState, useEffect } from "react";
+import { APP_VERSION, GITHUB_REPO, DONATE_LINK } from "@/lib/constants";
 
 interface Release {
     version: string;
@@ -7,28 +9,67 @@ interface Release {
     changes: string[];
 }
 
-// Changelog data - update this with each new release
-const RELEASES: Release[] = [
+interface GitHubRelease {
+    tag_name: string;
+    published_at: string;
+    body: string;
+}
+
+// Fallback changelog data if GitHub API fails
+const FALLBACK_RELEASES: Release[] = [
     {
         version: "1.0.0",
         date: "2026-01-21",
         changes: [
             "Initial release",
-            "Support for Wallpaper Engine and other Steam Workshop games",
-            "Dynamic game search with Steam API",
-            "Workshop item preview with thumbnails",
-            "Network diagnostics page",
-            "Auto-retry for failed downloads",
-            ".NET Runtime check and guidance",
         ],
     },
 ];
 
-const CURRENT_VERSION = "1.0.0";
-const GITHUB_REPO = "https://github.com/Hikkywannafly";
-const DONATE_LINK = "https://ko-fi.com/nyankoiscat";
+const CURRENT_VERSION = APP_VERSION;
 
 export function AboutPage() {
+    const [releases, setReleases] = useState<Release[]>(FALLBACK_RELEASES);
+    const [loading, setLoading] = useState(true);
+
+    useEffect(() => {
+        fetchReleases();
+    }, []);
+
+    const fetchReleases = async () => {
+        try {
+            const response = await fetch("https://api.github.com/repos/Hikkywannafly/steam-workshop-download/releases");
+            if (!response.ok) throw new Error("Failed to fetch releases");
+
+            const data: GitHubRelease[] = await response.json();
+
+            const parsedReleases: Release[] = data.map((release) => {
+                // Parse version from tag (remove 'v' prefix if exists)
+                const version = release.tag_name.replace(/^v/, "");
+
+                // Format date
+                const date = new Date(release.published_at).toISOString().split("T")[0];
+
+                // Parse changelog from body (split by lines starting with - or *)
+                const changes = release.body
+                    .split("\n")
+                    .filter(line => line.trim().match(/^[-*]\s+/))
+                    .map(line => line.trim().replace(/^[-*]\s+/, ""));
+
+                return { version, date, changes };
+            });
+
+            if (parsedReleases.length > 0) {
+                setReleases(parsedReleases);
+            }
+        } catch (error) {
+            console.error("Failed to fetch releases from GitHub:", error);
+            // Keep fallback data
+        } finally {
+            setLoading(false);
+        }
+    };
+
     const openLink = async (url: string) => {
         try {
             await open(url);
@@ -70,7 +111,7 @@ export function AboutPage() {
                             GitHub
                         </button>
                         <button
-                            onClick={() => openLink(`${GITHUB_REPO}/WorkshopDownloader/releases`)}
+                            onClick={() => openLink(`${GITHUB_REPO}/releases`)}
                             className="flex items-center gap-1.5 px-3 py-1.5 bg-surface hover:bg-surface-hover border border-border rounded-full text-xs transition-colors"
                         >
                             <Info className="w-3.5 h-3.5" />
@@ -167,10 +208,11 @@ export function AboutPage() {
                     <h3 className="font-medium mb-4 flex items-center gap-2">
                         <Info className="w-4 h-4 text-primary" />
                         Changelog
+                        {loading && <span className="text-xs text-muted">(Loading...)</span>}
                     </h3>
 
                     <div className="space-y-4">
-                        {RELEASES.map((release) => (
+                        {releases.map((release) => (
                             <div key={release.version} className="border-l-2 border-primary pl-4">
                                 <div className="flex items-center gap-2 mb-2">
                                     <span className="text-sm font-semibold">v{release.version}</span>
@@ -184,12 +226,16 @@ export function AboutPage() {
                                     )}
                                 </div>
                                 <ul className="space-y-1">
-                                    {release.changes.map((change, idx) => (
-                                        <li key={idx} className="text-xs text-foreground-muted flex items-start gap-2">
-                                            <span className="text-primary mt-0.5">•</span>
-                                            {change}
-                                        </li>
-                                    ))}
+                                    {release.changes.length > 0 ? (
+                                        release.changes.map((change, idx) => (
+                                            <li key={idx} className="text-xs text-foreground-muted flex items-start gap-2">
+                                                <span className="text-primary mt-0.5">•</span>
+                                                {change}
+                                            </li>
+                                        ))
+                                    ) : (
+                                        <li className="text-xs text-foreground-muted">No changelog available</li>
+                                    )}
                                 </ul>
                             </div>
                         ))}

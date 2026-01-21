@@ -7,6 +7,7 @@ import { SettingsPage } from "@/components/pages/SettingsPage";
 import { AboutPage } from "@/components/pages/AboutPage";
 import { ToastContainer } from "@/components/ui/ToastContainer";
 import { TitleBar } from "@/components/ui/TitleBar";
+import { APP_VERSION } from "@/lib/constants";
 import * as tauri from "@/lib/tauri";
 
 type Tab = "downloader" | "network" | "settings" | "about";
@@ -131,7 +132,7 @@ export default function App() {
           </button>
         </nav>
 
-        {/* Right Section: Social Links + .NET Status */}
+        {/* Right Section: Social Links + Version + .NET Status */}
         <div className="flex items-center gap-2">
           {/* Social Links */}
           <div className="flex items-center gap-1.5">
@@ -159,6 +160,11 @@ export default function App() {
               </svg>
               <span className="text-xs font-medium text-indigo-600 group-hover:text-indigo-700 transition-colors">nekozzuki</span>
             </button>
+          </div>
+
+          {/* Version Badge */}
+          <div className="flex items-center gap-1 px-2 py-1 rounded-full text-xs font-medium bg-blue-50 text-blue-600 border border-blue-200">
+            v{APP_VERSION}
           </div>
 
           {/* .NET Status */}
