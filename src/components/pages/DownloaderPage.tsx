@@ -18,6 +18,7 @@ interface DownloaderPageProps {
     consoleOutput: string[];
     onClearConsole: () => void;
     addLog: (msg: string) => void;
+    dotnetInstalled: boolean | null;
 }
 
 export function DownloaderPage({
@@ -29,6 +30,7 @@ export function DownloaderPage({
     consoleOutput,
     onClearConsole,
     addLog,
+    dotnetInstalled,
 }: DownloaderPageProps) {
     const [workshopLinks, setWorkshopLinks] = useState("");
     const [isDownloading, setIsDownloading] = useState(false);
@@ -38,6 +40,14 @@ export function DownloaderPage({
     const maxRetries = 3;
 
     const startDownload = async () => {
+        // Check .NET first
+        if (dotnetInstalled !== true) {
+            addLog("❌ Error: .NET 9.0 Runtime is not installed");
+            addLog("💡 Download .NET 9.0: https://dotnet.microsoft.com/download/dotnet/9.0");
+            showToast("error", ".NET Required", "Please install .NET 9.0 Runtime first");
+            return;
+        }
+
         if (downloadPath === "Not set") {
             addLog("❌ Error: Save location is not set");
             showToast("error", "Error", "Please set download location first");
@@ -131,9 +141,9 @@ export function DownloaderPage({
     };
 
     return (
-        <div className="h-full p-4 grid grid-cols-2 gap-3">
+        <div className="h-full p-4 grid grid-cols-2 gap-3 overflow-hidden">
             {/* Left Column - Controls */}
-            <div className="space-y-3 flex flex-col">
+            <div className="h-full overflow-y-auto space-y-3 flex flex-col">
                 <AccountSelector
                     accounts={accounts}
                     selectedAccountId={selectedAccountId}
@@ -152,7 +162,7 @@ export function DownloaderPage({
                 <PathSelector path={downloadPath} onSelectPath={onSelectPath} />
 
                 {/* Links */}
-                <div className="bg-surface rounded-lg p-3 border border-border flex-1 flex flex-col min-h-0 overflow-hidden">
+                <div className="bg-surface rounded-lg p-3 border border-border flex flex-col min-h-[200px]">
                     <div className="flex items-center gap-2 mb-2">
                         <Link className="w-3.5 h-3.5 text-primary" />
                         <span className="text-xs font-medium">Workshop Links</span>
@@ -173,18 +183,20 @@ export function DownloaderPage({
                 <button
                     onClick={startDownload}
                     disabled={isDownloading}
-                    className="w-full px-4 py-2.5 bg-gradient-to-r from-blue-500 to-purple-500 hover:from-blue-600 hover:to-purple-600 disabled:opacity-50 text-white text-sm font-semibold rounded-lg flex items-center justify-center gap-2"
+                    className="w-full px-4 py-2.5 bg-blue-500 hover:from-blue-600 hover:to-purple-600 disabled:opacity-50 text-white text-sm font-semibold rounded-lg flex items-center justify-center gap-2 flex-shrink-0"
                 >
                     {isDownloading ? "Downloading..." : "Start Download"}
                 </button>
             </div>
 
             {/* Right Column - Console */}
-            <ConsoleOutput
-                logs={consoleOutput}
-                onClear={onClearConsole}
-                className="h-full"
-            />
+            <div className="h-full overflow-hidden">
+                <ConsoleOutput
+                    logs={consoleOutput}
+                    onClear={onClearConsole}
+                    className="h-full"
+                />
+            </div>
         </div>
     );
 }

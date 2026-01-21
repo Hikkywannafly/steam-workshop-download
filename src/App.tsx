@@ -1,12 +1,13 @@
 import { useState, useEffect } from "react";
-import { Download, Wifi, Settings, CheckCircle, AlertCircle } from "lucide-react";
+import { Download, Wifi, Settings, CheckCircle, AlertCircle, Info } from "lucide-react";
 import { DownloaderPage } from "@/components/pages/DownloaderPage";
 import { NetworkPage } from "@/components/pages/NetworkPage";
 import { SettingsPage } from "@/components/pages/SettingsPage";
+import { AboutPage } from "@/components/pages/AboutPage";
 import { ToastContainer } from "@/components/ui/ToastContainer";
 import * as tauri from "@/lib/tauri";
 
-type Tab = "downloader" | "network" | "settings";
+type Tab = "downloader" | "network" | "settings" | "about";
 
 interface Account {
   id: string;
@@ -88,8 +89,8 @@ export default function App() {
           <button
             onClick={() => setActiveTab("downloader")}
             className={`px-3 py-1.5 rounded-full text-xs font-medium transition-colors ${activeTab === "downloader"
-                ? "bg-foreground text-surface"
-                : "text-foreground-muted hover:bg-surface-hover"
+              ? "bg-foreground text-surface"
+              : "text-foreground-muted hover:bg-surface-hover"
               }`}
           >
             <Download className="w-3.5 h-3.5 inline mr-1.5" />
@@ -98,8 +99,8 @@ export default function App() {
           <button
             onClick={() => setActiveTab("network")}
             className={`px-3 py-1.5 rounded-full text-xs font-medium transition-colors ${activeTab === "network"
-                ? "bg-foreground text-surface"
-                : "text-foreground-muted hover:bg-surface-hover"
+              ? "bg-foreground text-surface"
+              : "text-foreground-muted hover:bg-surface-hover"
               }`}
           >
             <Wifi className="w-3.5 h-3.5 inline mr-1.5" />
@@ -108,12 +109,22 @@ export default function App() {
           <button
             onClick={() => setActiveTab("settings")}
             className={`px-3 py-1.5 rounded-full text-xs font-medium transition-colors ${activeTab === "settings"
-                ? "bg-foreground text-surface"
-                : "text-foreground-muted hover:bg-surface-hover"
+              ? "bg-foreground text-surface"
+              : "text-foreground-muted hover:bg-surface-hover"
               }`}
           >
             <Settings className="w-3.5 h-3.5 inline mr-1.5" />
             Settings
+          </button>
+          <button
+            onClick={() => setActiveTab("about")}
+            className={`px-3 py-1.5 rounded-full text-xs font-medium transition-colors ${activeTab === "about"
+              ? "bg-foreground text-surface"
+              : "text-foreground-muted hover:bg-surface-hover"
+              }`}
+          >
+            <Info className="w-3.5 h-3.5 inline mr-1.5" />
+            About
           </button>
         </nav>
 
@@ -146,12 +157,15 @@ export default function App() {
             consoleOutput={consoleOutput}
             onClearConsole={clearConsole}
             addLog={addLog}
+            dotnetInstalled={dotnetInstalled}
           />
         )}
 
         {activeTab === "network" && <NetworkPage />}
 
-        {activeTab === "settings" && <SettingsPage />}
+        {activeTab === "settings" && <SettingsPage dotnetInstalled={dotnetInstalled} />}
+
+        {activeTab === "about" && <AboutPage />}
       </div>
 
       {/* Toast Container for notifications */}

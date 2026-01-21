@@ -161,7 +161,7 @@ export function GameSelector({
                     App ID: <span className="font-mono text-primary">{selectedAppId}</span>
                 </p>
                 <p className="text-xs text-muted italic">
-                    💡 Tìm game bạn muốn tải workshop, ví dụ: "Wallpaper Engine", "Cities Skylines"...
+                    💡 Search for games to download workshop content, e.g. "Wallpaper Engine", "Cities Skylines"...
                 </p>
             </div>
         </div>
