@@ -48,6 +48,20 @@ export async function searchSteamGames(query: string): Promise<SteamGameResult[]
     return invoke<SteamGameResult[]>("search_steam_games", { query });
 }
 
+// Workshop Details API
+export interface WorkshopItemDetails {
+    publishedfileid: string;
+    title: string;
+    preview_url: string | null;
+    description: string | null;
+    creator: string | null;
+    file_size: number | null;
+}
+
+export async function getWorkshopDetails(pubfileId: string): Promise<WorkshopItemDetails> {
+    return invoke<WorkshopItemDetails>("get_workshop_details", { pubfileId });
+}
+
 // Download Commands
 export async function startDownload(
     pubfileId: string,

@@ -94,3 +94,82 @@ pub async fn search_steam_games(query: String) -> Result<Vec<SteamGameResult>, S
 
     Ok(results)
 }
+
+/// Workshop item details from Steam API
+#[derive(serde::Serialize)]
+pub struct WorkshopItemDetails {
+    pub publishedfileid: String,
+    pub title: String,
+    pub preview_url: Option<String>,
+    pub description: Option<String>,
+    pub creator: Option<String>,
+    pub file_size: Option<u64>,
+}
+
+/// Get workshop item details from Steam API
+#[tauri::command]
+pub async fn get_workshop_details(pubfile_id: String) -> Result<WorkshopItemDetails, String> {
+    if pubfile_id.trim().is_empty() {
+        return Err("Empty pubfile ID".to_string());
+    }
+
+    // Use Steam ISteamRemoteStorage/GetPublishedFileDetails API
+    let client = reqwest::Client::new();
+    let response = client
+        .post("https://api.steampowered.com/ISteamRemoteStorage/GetPublishedFileDetails/v1/")
+        .form(&[
+            ("itemcount", "1"),
+            ("publishedfileids[0]", &pubfile_id),
+        ])
+        .send()
+        .await
+        .map_err(|e| format!("HTTP request failed: {}", e))?;
+
+    let json: serde_json::Value = response
+        .json()
+        .await
+        .map_err(|e| format!("Failed to parse JSON: {}", e))?;
+
+    // Parse response
+    let file_details = &json["response"]["publishedfiledetails"][0];
+    
+    if file_details.is_null() {
+        return Err("Workshop item not found".to_string());
+    }
+
+    // Check for result code (1 = success)
+    let result = file_details["result"].as_i64().unwrap_or(0);
+    if result != 1 {
+        return Err("Workshop item not found or not accessible".to_string());
+    }
+
+    Ok(WorkshopItemDetails {
+        publishedfileid: file_details["publishedfileid"]
+            .as_str()
+            .unwrap_or(&pubfile_id)
+            .to_string(),
+        title: file_details["title"]
+            .as_str()
+            .unwrap_or("Unknown")
+            .to_string(),
+        preview_url: file_details["preview_url"]
+            .as_str()
+            .map(|s| s.to_string()),
+        description: file_details["description"]
+            .as_str()
+            .map(|s| {
+                // Truncate description to first 200 chars
+                if s.len() > 200 {
+                    format!("{}...", &s[..200])
+                } else {
+                    s.to_string()
+                }
+            }),
+        creator: file_details["creator"]
+            .as_str()
+            .map(|s| s.to_string()),
+        file_size: file_details["file_size"]
+            .as_u64()
+            .or_else(|| file_details["file_size"].as_str()?.parse().ok()),
+    })
+}
