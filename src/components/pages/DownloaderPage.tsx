@@ -6,6 +6,7 @@ import { GameSelector } from "@/components/ui/GameSelector";
 import { PathSelector } from "@/components/ui/PathSelector";
 import { ConsoleOutput } from "@/components/ui/ConsoleOutput";
 import { WorkshopInputPreview } from "@/components/ui/WorkshopPreview";
+import { DotnetModal } from "@/components/ui/DotnetModal";
 import * as tauri from "@/lib/tauri";
 import { showToast, notifyDownloadComplete, notifyDownloadError } from "@/lib/notifications";
 
@@ -14,11 +15,12 @@ interface DownloaderPageProps {
     selectedAccountId: string;
     onAccountChange: (id: string) => void;
     downloadPath: string;
-    onSelectPath: () => void;
+    onSelectPath: (appId: string) => void;
     consoleOutput: string[];
     onClearConsole: () => void;
     addLog: (msg: string) => void;
     dotnetInstalled: boolean | null;
+    onRecheckDotnet: () => Promise<void>;
 }
 
 export function DownloaderPage({
@@ -31,20 +33,20 @@ export function DownloaderPage({
     onClearConsole,
     addLog,
     dotnetInstalled,
+    onRecheckDotnet,
 }: DownloaderPageProps) {
     const [workshopLinks, setWorkshopLinks] = useState("");
     const [isDownloading, setIsDownloading] = useState(false);
     const [selectedAppId, setSelectedAppId] = useState("431960");
     const [gameName, setGameName] = useState("Wallpaper Engine");
+    const [showDotnetModal, setShowDotnetModal] = useState(false);
 
     const maxRetries = 3;
 
     const startDownload = async () => {
         // Check .NET first
         if (dotnetInstalled !== true) {
-            addLog("❌ Error: .NET 9.0 Runtime is not installed");
-            addLog("💡 Download .NET 9.0: https://dotnet.microsoft.com/download/dotnet/9.0");
-            showToast("error", ".NET Required", "Please install .NET 9.0 Runtime first");
+            setShowDotnetModal(true);
             return;
         }
 
@@ -141,6 +143,13 @@ export function DownloaderPage({
     };
 
     return (
+        <>
+        {showDotnetModal && (
+            <DotnetModal
+                onClose={() => setShowDotnetModal(false)}
+                onRecheck={onRecheckDotnet}
+            />
+        )}
         <div className="h-full p-4 grid grid-cols-2 gap-3 overflow-hidden">
 
             {/* Left Column - Controls */}
@@ -166,7 +175,7 @@ export function DownloaderPage({
                     defaultGameName={gameName}
                 />
 
-                <PathSelector path={downloadPath} onSelectPath={onSelectPath} />
+                <PathSelector path={downloadPath} onSelectPath={() => onSelectPath(selectedAppId)} />
 
                 {/* Links */}
                 <div className="bg-surface rounded-lg p-3 border border-border flex flex-col min-h-[200px]">
@@ -205,5 +214,6 @@ export function DownloaderPage({
                 />
             </div>
         </div>
+        </>
     );
 }

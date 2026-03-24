@@ -17,10 +17,6 @@ export async function checkDotnetRuntime(): Promise<boolean> {
     return invoke<boolean>("check_dotnet_runtime");
 }
 
-export async function getDotnetDownloadUrl(): Promise<string> {
-    return invoke<string>("get_dotnet_download_url");
-}
-
 export async function selectFolder(): Promise<string | null> {
     return invoke<string | null>("select_folder");
 }
@@ -31,10 +27,6 @@ export async function loadSettings(): Promise<AppSettings> {
 
 export async function saveSettings(settings: AppSettings): Promise<void> {
     return invoke("save_settings", { settings });
-}
-
-export async function getConfigPath(): Promise<string> {
-    return invoke<string>("get_config_path");
 }
 
 // Steam API

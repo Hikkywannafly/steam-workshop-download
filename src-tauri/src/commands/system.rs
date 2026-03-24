@@ -9,12 +9,6 @@ pub async fn check_dotnet_runtime() -> Result<bool, String> {
     DownloaderService::check_dotnet_runtime().await
 }
 
-/// Get .NET 9.0 download URL
-#[tauri::command]
-pub fn get_dotnet_download_url() -> String {
-    DownloaderService::get_dotnet_download_url()
-}
-
 /// Open folder picker dialog
 #[tauri::command]
 pub async fn select_folder(app: tauri::AppHandle) -> Result<Option<String>, String> {
@@ -41,12 +35,6 @@ pub fn load_settings() -> Result<AppSettings, String> {
 #[tauri::command]
 pub fn save_settings(settings: AppSettings) -> Result<(), String> {
     StorageService::save_settings(&settings)
-}
-
-/// Get config directory path
-#[tauri::command]
-pub fn get_config_path() -> String {
-    StorageService::get_config_dir().to_string_lossy().to_string()
 }
 
 /// Steam game search result

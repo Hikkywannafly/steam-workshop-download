@@ -1,4 +1,5 @@
 import { useState, useEffect } from "react";
+import { exists } from "@tauri-apps/plugin-fs";
 import { Download, Wifi, Settings, CheckCircle, AlertCircle, Info, Github, Heart } from "lucide-react";
 import { open } from "@tauri-apps/plugin-shell";
 import { DownloaderPage } from "@/components/pages/DownloaderPage";
@@ -62,20 +63,35 @@ export default function App() {
     setConsoleOutput([]);
   };
 
-  const selectDirectory = async () => {
+  const recheckDotnet = async () => {
+    try {
+      const installed = await tauri.checkDotnetRuntime();
+      setDotnetInstalled(installed);
+    } catch {
+      setDotnetInstalled(false);
+    }
+  };
+
+  const selectDirectory = async (appId?: string) => {
     try {
       const folder = await tauri.selectFolder();
-      if (folder) {
-        setDownloadPath(folder);
-        addLog(`Path set to ${folder}`);
-        await tauri.saveSettings({
-          download_path: folder,
-          max_concurrent_downloads: 3,
-          auto_retry: true,
-          retry_attempts: 3,
-          theme: "light",
-        });
+      if (!folder) return;
+
+      let finalPath = folder;
+
+      // Wallpaper Engine: auto-detect projects/myprojects subfolder
+      if (appId === "431960") {
+        const wpeSubfolder = `${folder}\\projects\\myprojects`;
+        if (await exists(wpeSubfolder)) {
+          finalPath = wpeSubfolder;
+          addLog(`Auto-detected Wallpaper Engine path: ${finalPath}`);
+        }
       }
+
+      setDownloadPath(finalPath);
+      addLog(`Path set to ${finalPath}`);
+      const current = await tauri.loadSettings();
+      await tauri.saveSettings({ ...current, download_path: finalPath });
     } catch {
       addLog("Error selecting folder");
     }
@@ -168,8 +184,10 @@ export default function App() {
           </div>
 
           {/* .NET Status */}
-          <div
-            className="flex items-center gap-1 px-2 py-1 rounded-full text-xs font-medium"
+          <button
+            onClick={recheckDotnet}
+            title="Click to re-check .NET status"
+            className="flex items-center gap-1 px-2 py-1 rounded-full text-xs font-medium cursor-pointer transition-opacity hover:opacity-70"
             style={{
               backgroundColor: dotnetInstalled === true ? "rgba(34,197,94,0.1)" : "rgba(239,68,68,0.1)",
               color: dotnetInstalled === true ? "#22c55e" : "#ef4444",
@@ -181,7 +199,7 @@ export default function App() {
               <AlertCircle className="w-3 h-3" />
             )}
             {dotnetInstalled === true ? ".NET 9.0" : "No .NET"}
-          </div>
+          </button>
         </div>
       </header>
 
@@ -198,12 +216,13 @@ export default function App() {
             onClearConsole={clearConsole}
             addLog={addLog}
             dotnetInstalled={dotnetInstalled}
+            onRecheckDotnet={recheckDotnet}
           />
         )}
 
         {activeTab === "network" && <NetworkPage />}
 
-        {activeTab === "settings" && <SettingsPage dotnetInstalled={dotnetInstalled} />}
+        {activeTab === "settings" && <SettingsPage dotnetInstalled={dotnetInstalled} onRecheckDotnet={recheckDotnet} />}
 
         {activeTab === "about" && <AboutPage />}
       </div>

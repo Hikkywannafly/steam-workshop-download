@@ -18,7 +18,9 @@ export function setToastCallback(callback: (toast: Toast) => void) {
     toastCallback = callback;
 }
 
-export function showToast(type: ToastType, title: string, message?: string, duration = 5000) {
+export function showToast(type: ToastType, title: string, message?: string, duration?: number) {
+    const defaultDuration = type === "error" ? 8000 : 5000;
+    duration = duration ?? defaultDuration;
     if (toastCallback) {
         toastCallback({
             id: Date.now().toString(),

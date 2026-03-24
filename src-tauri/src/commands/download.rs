@@ -60,7 +60,6 @@ pub async fn start_download(
 
 
 /// Add record to history
-#[tauri::command]
 pub fn add_to_history(
     pubfile_id: String,
     title: String,

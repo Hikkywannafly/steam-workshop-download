@@ -24,21 +24,18 @@ pub fn run() {
         .invoke_handler(tauri::generate_handler![
             // System commands
             commands::check_dotnet_runtime,
-            commands::get_dotnet_download_url,
             commands::select_folder,
             commands::load_settings,
             commands::save_settings,
-            commands::get_config_path,
             commands::search_steam_games,
             commands::get_workshop_details,
             // Download commands
             commands::start_download,
-            commands::add_to_history,
         ])
         .on_window_event(|_window, event| {
             if let tauri::WindowEvent::CloseRequested { .. } = event {
                 // Cleanup DepotDownloader processes on exit
-                tokio::spawn(async {
+                tauri::async_runtime::spawn(async {
                     let _ = DownloaderService::cleanup_processes().await;
                 });
             }

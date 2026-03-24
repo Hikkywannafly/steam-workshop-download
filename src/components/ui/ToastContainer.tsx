@@ -66,7 +66,7 @@ export function ToastContainer() {
                     <div className="flex-1 min-w-0">
                         <h4 className="font-medium text-sm">{toast.title}</h4>
                         {toast.message && (
-                            <p className="text-xs text-muted mt-1 truncate">{toast.message}</p>
+                            <p className="text-xs text-muted mt-1 break-words">{toast.message}</p>
                         )}
                     </div>
                     <button

@@ -31,11 +31,6 @@ impl DownloaderService {
         Ok(stdout.contains("Microsoft.NETCore.App 9."))
     }
 
-    /// Get .NET 9.0 download URL
-    pub fn get_dotnet_download_url() -> String {
-        "https://dotnet.microsoft.com/en-us/download/dotnet/thank-you/runtime-9.0.0-windows-x64-installer".to_string()
-    }
-
     /// Kill all DepotDownloader processes
     #[cfg(target_os = "windows")]
     pub async fn cleanup_processes() -> Result<(), String> {
