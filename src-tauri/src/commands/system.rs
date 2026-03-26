@@ -1,7 +1,7 @@
-use crate::services::{DownloaderService, StorageService};
 use crate::models::AppSettings;
+use crate::services::{DownloaderService, StorageService};
+use std::path::PathBuf;
 use tauri_plugin_dialog::DialogExt;
-use std::sync::mpsc;
 
 /// Check if .NET 9.0 Runtime is installed
 #[tauri::command]
@@ -11,18 +11,32 @@ pub async fn check_dotnet_runtime() -> Result<bool, String> {
 
 /// Open folder picker dialog
 #[tauri::command]
-pub async fn select_folder(app: tauri::AppHandle) -> Result<Option<String>, String> {
-    let (tx, rx) = mpsc::channel();
-    
-    app.dialog()
-        .file()
-        .pick_folder(move |folder_path| {
-            let _ = tx.send(folder_path.map(|p| p.to_string()));
-        });
-    
-    // Wait for dialog result
-    rx.recv()
-        .map_err(|e| format!("Dialog error: {}", e))
+pub async fn select_folder(
+    app: tauri::AppHandle,
+    app_id: Option<String>,
+) -> Result<Option<String>, String> {
+    let Some(folder_path) = app.dialog().file().blocking_pick_folder() else {
+        return Ok(None);
+    };
+
+    let selected_path = folder_path
+        .into_path()
+        .map_err(|e| format!("Invalid folder path: {}", e))?;
+
+    let final_path = resolve_download_path(selected_path, app_id.as_deref());
+
+    Ok(Some(final_path.display().to_string()))
+}
+
+fn resolve_download_path(selected_path: PathBuf, app_id: Option<&str>) -> PathBuf {
+    if app_id == Some("431960") {
+        let wallpaper_engine_projects = selected_path.join("projects").join("myprojects");
+        if wallpaper_engine_projects.exists() {
+            return wallpaper_engine_projects;
+        }
+    }
+
+    selected_path
 }
 
 /// Load app settings
@@ -68,7 +82,7 @@ pub async fn search_steam_games(query: String) -> Result<Vec<SteamGameResult>, S
 
     let empty_items: Vec<serde_json::Value> = vec![];
     let items = json["items"].as_array().unwrap_or(&empty_items);
-    
+
     let results: Vec<SteamGameResult> = items
         .iter()
         .take(10) // Limit to 10 results
@@ -105,10 +119,7 @@ pub async fn get_workshop_details(pubfile_id: String) -> Result<WorkshopItemDeta
     let client = reqwest::Client::new();
     let response = client
         .post("https://api.steampowered.com/ISteamRemoteStorage/GetPublishedFileDetails/v1/")
-        .form(&[
-            ("itemcount", "1"),
-            ("publishedfileids[0]", &pubfile_id),
-        ])
+        .form(&[("itemcount", "1"), ("publishedfileids[0]", &pubfile_id)])
         .send()
         .await
         .map_err(|e| format!("HTTP request failed: {}", e))?;
@@ -120,7 +131,7 @@ pub async fn get_workshop_details(pubfile_id: String) -> Result<WorkshopItemDeta
 
     // Parse response
     let file_details = &json["response"]["publishedfiledetails"][0];
-    
+
     if file_details.is_null() {
         return Err("Workshop item not found".to_string());
     }
@@ -140,22 +151,16 @@ pub async fn get_workshop_details(pubfile_id: String) -> Result<WorkshopItemDeta
             .as_str()
             .unwrap_or("Unknown")
             .to_string(),
-        preview_url: file_details["preview_url"]
-            .as_str()
-            .map(|s| s.to_string()),
-        description: file_details["description"]
-            .as_str()
-            .map(|s| {
-                // Truncate description to first 200 chars
-                if s.len() > 200 {
-                    format!("{}...", &s[..200])
-                } else {
-                    s.to_string()
-                }
-            }),
-        creator: file_details["creator"]
-            .as_str()
-            .map(|s| s.to_string()),
+        preview_url: file_details["preview_url"].as_str().map(|s| s.to_string()),
+        description: file_details["description"].as_str().map(|s| {
+            // Truncate description to first 200 chars
+            if s.len() > 200 {
+                format!("{}...", &s[..200])
+            } else {
+                s.to_string()
+            }
+        }),
+        creator: file_details["creator"].as_str().map(|s| s.to_string()),
         file_size: file_details["file_size"]
             .as_u64()
             .or_else(|| file_details["file_size"].as_str()?.parse().ok()),

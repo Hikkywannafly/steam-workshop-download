@@ -17,8 +17,8 @@ export async function checkDotnetRuntime(): Promise<boolean> {
     return invoke<boolean>("check_dotnet_runtime");
 }
 
-export async function selectFolder(): Promise<string | null> {
-    return invoke<string | null>("select_folder");
+export async function selectFolder(appId?: string): Promise<string | null> {
+    return invoke<string | null>("select_folder", { appId });
 }
 
 export async function loadSettings(): Promise<AppSettings> {

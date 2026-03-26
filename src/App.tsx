@@ -1,5 +1,4 @@
 import { useState, useEffect } from "react";
-import { exists } from "@tauri-apps/plugin-fs";
 import { Download, Wifi, Settings, CheckCircle, AlertCircle, Info, Github, Heart } from "lucide-react";
 import { open } from "@tauri-apps/plugin-shell";
 import { DownloaderPage } from "@/components/pages/DownloaderPage";
@@ -74,26 +73,16 @@ export default function App() {
 
   const selectDirectory = async (appId?: string) => {
     try {
-      const folder = await tauri.selectFolder();
+      const folder = await tauri.selectFolder(appId);
       if (!folder) return;
 
-      let finalPath = folder;
-
-      // Wallpaper Engine: auto-detect projects/myprojects subfolder
-      if (appId === "431960") {
-        const wpeSubfolder = `${folder}\\projects\\myprojects`;
-        if (await exists(wpeSubfolder)) {
-          finalPath = wpeSubfolder;
-          addLog(`Auto-detected Wallpaper Engine path: ${finalPath}`);
-        }
-      }
-
-      setDownloadPath(finalPath);
-      addLog(`Path set to ${finalPath}`);
+      setDownloadPath(folder);
+      addLog(`Path set to ${folder}`);
       const current = await tauri.loadSettings();
-      await tauri.saveSettings({ ...current, download_path: finalPath });
-    } catch {
-      addLog("Error selecting folder");
+      await tauri.saveSettings({ ...current, download_path: folder });
+    } catch (error) {
+      const message = error instanceof Error ? error.message : String(error);
+      addLog(`Error selecting folder: ${message}`);
     }
   };
 
